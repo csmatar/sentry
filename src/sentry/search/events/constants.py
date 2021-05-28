@@ -55,3 +55,13 @@ SEARCH_MAP = {
 }
 SEARCH_MAP.update(**DATASETS[Dataset.Events])
 SEARCH_MAP.update(**DATASETS[Dataset.Discover])
+
+OPERATOR_NEGATION_MAP = {
+    "=": "!=",
+    "<": ">=",
+    "<=": ">",
+    ">": "<=",
+    ">=": "<",
+    "IN": "NOT IN",
+}
+OPERATOR_TO_DJANGO = {">=": "gte", "<=": "lte", ">": "gt", "<": "lt"}
