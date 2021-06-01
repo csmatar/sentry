@@ -22,12 +22,13 @@ import {trackAnalyticsEvent} from 'app/utils/analytics';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
+import DashboardBanner from './banner';
 import Controls from './controls';
 import Dashboard from './dashboard';
 import {DEFAULT_STATS_PERIOD, EMPTY_DASHBOARD} from './data';
 import DashboardTitle from './title';
 import {DashboardDetails, DashboardListItem, DashboardState, Widget} from './types';
-import {cloneDashboard} from './utils';
+import {cloneDashboard, isBannerHidden, setBannerHidden} from './utils';
 
 const UNSAVED_MESSAGE = t('You have unsaved changes, are you sure you want to leave?');
 
@@ -51,12 +52,14 @@ type State = {
   dashboardState: DashboardState;
   modifiedDashboard: DashboardDetails | null;
   widgetToBeUpdated?: Widget;
+  isBannerHidden: boolean;
 };
 
 class DashboardDetail extends Component<Props, State> {
   state: State = {
     dashboardState: this.props.initialState,
     modifiedDashboard: this.updateModifiedDashboard(this.props.initialState),
+    isBannerHidden: isBannerHidden(),
   };
 
   componentDidMount() {
@@ -67,6 +70,14 @@ class DashboardDetail extends Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
+    const isHidden = isBannerHidden();
+    if (isHidden !== this.state.isBannerHidden) {
+      // eslint-disable-next-line react/no-did-update-set-state
+      this.setState({
+        isBannerHidden: isHidden,
+      });
+    }
+
     if (prevProps.location.pathname !== this.props.location.pathname) {
       this.checkStateRoute();
     }
@@ -379,6 +390,11 @@ class DashboardDetail extends Component<Props, State> {
     );
   };
 
+  handleBannerClick = () => {
+    setBannerHidden(true);
+    this.setState({isBannerHidden: true});
+  };
+
   renderWidgetBuilder(dashboard: DashboardDetails) {
     const {children} = this.props;
     const {modifiedDashboard, widgetToBeUpdated} = this.state;
@@ -429,6 +445,7 @@ class DashboardDetail extends Component<Props, State> {
                 dashboardState={dashboardState}
               />
             </StyledPageHeader>
+            <DashboardBanner onHideBanner={this.handleBannerClick} />
             <Dashboard
               paramDashboardId={dashboardId}
               dashboard={modifiedDashboard ?? dashboard}
