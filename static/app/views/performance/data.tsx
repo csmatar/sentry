@@ -285,7 +285,9 @@ function generateGenericPerformanceEventView(
     query: 'event.type:transaction',
     projects: [],
     fields: [
-      'key_transaction',
+      organization.features.includes('team-key-transactions')
+        ? 'team_key_transaction'
+        : 'key_transaction',
       'transaction',
       'project',
       'tpm()',
@@ -343,7 +345,9 @@ function generateBackendPerformanceEventView(
     query: 'event.type:transaction',
     projects: [],
     fields: [
-      'key_transaction',
+      organization.features.includes('team-key-transactions')
+        ? 'team_key_transaction'
+        : 'key_transaction',
       'transaction',
       'project',
       'transaction.op',
@@ -403,7 +407,9 @@ function generateFrontendPageloadPerformanceEventView(
     query: 'event.type:transaction',
     projects: [],
     fields: [
-      'key_transaction',
+      organization.features.includes('team-key-transactions')
+        ? 'team_key_transaction'
+        : 'key_transaction',
       'transaction',
       'project',
       'tpm()',
@@ -463,7 +469,9 @@ function generateFrontendOtherPerformanceEventView(
     query: 'event.type:transaction',
     projects: [],
     fields: [
-      'key_transaction',
+      organization.features.includes('team-key-transactions')
+        ? 'team_key_transaction'
+        : 'key_transaction',
       'transaction',
       'project',
       'transaction.op',
@@ -516,7 +524,7 @@ export function generatePerformanceEventView(
   projects,
   isTrends = false
 ) {
-  const eventView = generateGenericPerformanceEventView(organization, location);
+  let eventView = generateGenericPerformanceEventView(organization, location);
   if (isTrends) {
     return eventView;
   }
@@ -524,18 +532,27 @@ export function generatePerformanceEventView(
   const display = getCurrentLandingDisplay(location, projects, eventView);
   switch (display?.field) {
     case LandingDisplayField.FRONTEND_PAGELOAD:
-      return generateFrontendPageloadPerformanceEventView(organization, location);
+      eventView = generateFrontendPageloadPerformanceEventView(organization, location);
+      break;
     case LandingDisplayField.FRONTEND_OTHER:
-      return generateFrontendOtherPerformanceEventView(organization, location);
+      eventView = generateFrontendOtherPerformanceEventView(organization, location);
+      break;
     case LandingDisplayField.BACKEND:
-      return generateBackendPerformanceEventView(organization, location);
+      eventView = generateBackendPerformanceEventView(organization, location);
+      break;
     default:
-      return eventView;
+      break;
+  }
+
+  if (organization.features.includes('team-key-transactions')) {
+    return eventView.withTeams(['myteams']);
+  } else {
+    return eventView;
   }
 }
 
 export function generatePerformanceVitalDetailView(
-  _organization: LightWeightOrganization,
+  organization: LightWeightOrganization,
   location: Location
 ): EventView {
   const {query} = location;
@@ -549,7 +566,9 @@ export function generatePerformanceVitalDetailView(
     query: 'event.type:transaction',
     projects: [],
     fields: [
-      'key_transaction',
+      organization.features.includes('team-key-transactions')
+        ? 'team_key_transaction'
+        : 'key_transaction',
       'transaction',
       'project',
       'count_unique(user)',
@@ -583,5 +602,10 @@ export function generatePerformanceVitalDetailView(
   eventView.additionalConditions
     .addTagValues('event.type', ['transaction'])
     .addTagValues('has', [vitalName]);
-  return eventView;
+
+  if (organization.features.includes('team-key-transactions')) {
+    return eventView.withTeams(['myteams']);
+  } else {
+    return eventView;
+  }
 }

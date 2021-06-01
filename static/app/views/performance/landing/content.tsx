@@ -5,15 +5,17 @@ import {Location} from 'history';
 
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import SearchBar from 'app/components/events/searchBar';
+import * as TeamKeyTransactionManager from 'app/components/performance/teamKeyTransactionsManager';
 import {MAX_QUERY_LENGTH} from 'app/constants';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
+import {Organization, Project, Team} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
 import {generateAggregateFields} from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
+import withTeams from 'app/utils/withTeams';
 
 import Charts from '../charts/index';
 import {
@@ -46,6 +48,7 @@ type Props = {
   eventView: EventView;
   location: Location;
   projects: Project[];
+  teams: Team[];
   setError: (msg: string | undefined) => void;
   handleSearch: (searchQuery: string) => void;
 } & WithRouterProps;
@@ -96,22 +99,24 @@ class LandingContent extends Component<Props, State> {
   };
 
   renderSelectedDisplay(display) {
+    const {eventView} = this.props;
+
     switch (display) {
       case LandingDisplayField.ALL:
-        return this.renderLandingAll();
+        return this.renderLandingAll(eventView);
       case LandingDisplayField.FRONTEND_PAGELOAD:
-        return this.renderLandingFrontend(true);
+        return this.renderLandingFrontend(eventView, true);
       case LandingDisplayField.FRONTEND_OTHER:
-        return this.renderLandingFrontend(false);
+        return this.renderLandingFrontend(eventView, false);
       case LandingDisplayField.BACKEND:
-        return this.renderLandingBackend();
+        return this.renderLandingBackend(eventView);
       default:
         throw new Error(`Unknown display: ${display}`);
     }
   }
 
-  renderLandingFrontend = isPageload => {
-    const {organization, location, projects, eventView, setError} = this.props;
+  renderLandingFrontend = (eventView, isPageload) => {
+    const {organization, location, projects, setError} = this.props;
 
     const columnTitles = isPageload
       ? FRONTEND_PAGELOAD_COLUMN_TITLES
@@ -153,8 +158,8 @@ class LandingContent extends Component<Props, State> {
     );
   };
 
-  renderLandingBackend = () => {
-    const {organization, location, projects, eventView, setError} = this.props;
+  renderLandingBackend = eventView => {
+    const {organization, location, projects, setError} = this.props;
 
     const axisOptions = getBackendAxisOptions(organization);
     const {leftAxis, rightAxis} = getDisplayAxes(axisOptions, location);
@@ -189,8 +194,8 @@ class LandingContent extends Component<Props, State> {
     );
   };
 
-  renderLandingAll = () => {
-    const {organization, location, router, projects, eventView, setError} = this.props;
+  renderLandingAll = eventView => {
+    const {organization, location, router, projects, setError} = this.props;
 
     return (
       <Fragment>
@@ -213,10 +218,11 @@ class LandingContent extends Component<Props, State> {
   };
 
   render() {
-    const {organization, location, eventView, projects, handleSearch} = this.props;
+    const {organization, location, eventView, projects, teams, handleSearch} = this.props;
 
     const currentLandingDisplay = getCurrentLandingDisplay(location, projects, eventView);
     const filterString = getTransactionSearchQuery(location, eventView.query);
+    const userTeams = teams.filter(({isMember}) => isMember);
 
     return (
       <Fragment>
@@ -250,7 +256,13 @@ class LandingContent extends Component<Props, State> {
             ))}
           </DropdownControl>
         </SearchContainer>
-        {this.renderSelectedDisplay(currentLandingDisplay.field)}
+        <TeamKeyTransactionManager.Provider
+          organization={organization}
+          teams={userTeams}
+          selectedTeams={['myteams']}
+        >
+          {this.renderSelectedDisplay(currentLandingDisplay.field)}
+        </TeamKeyTransactionManager.Provider>
       </Fragment>
     );
   }
@@ -263,4 +275,4 @@ const SearchContainer = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
-export default withRouter(LandingContent);
+export default withRouter(withTeams(LandingContent));
