@@ -19,8 +19,10 @@ function DashboardBanner({onHideBanner}: Props) {
       onCloseClick={onHideBanner}
       backgroundComponent={<DashboardBackground />}
     >
-      <Button>{t('Read the docs')}</Button>
       <Button priority="primary">{t('Upgrade plan')}</Button>
+      <Button href="https://docs.sentry.io/product/dashboards/" external>
+        {t('Read the docs')}
+      </Button>
     </StyledBanner>
   );
 }
