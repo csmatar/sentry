@@ -7,24 +7,21 @@ import {Client} from 'app/api';
 import {t} from 'app/locale';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
 
-type TeamKeyTransaction = {
-  team: string;
-  keyed: {
-    project_id: string;
-    transaction: string;
-  }[];
-};
+type TransactionNames = Set<string>;
+type KeyTransactionPerProject = Map<string, TransactionNames>;
+export type TeamKeyTransactions = Map<string, KeyTransactionPerProject>;
 
 export async function fetchTeamKeyTransactions(
   api: Client,
   orgSlug: string,
   teams: string | string[]
-): Promise<TeamKeyTransaction[]> {
+): Promise<TeamKeyTransactions> {
   const url = `/organizations/${orgSlug}/key-transactions-list/`;
 
-  const datas: TeamKeyTransaction[][] = [];
   let cursor: string | undefined = undefined;
   let hasMore = true;
+
+  const teamKeyTransactions = new Map();
 
   while (hasMore) {
     try {
@@ -33,7 +30,17 @@ export async function fetchTeamKeyTransactions(
         includeAllArgs: true,
         query: {cursor, team: teams},
       });
-      datas.push(data);
+
+      data.forEach(({team, keyed}) => {
+        const keyTransactionsForTeam = keyed.reduce((kts, {project_id, transaction}) => {
+          if (!kts.has(project_id)) {
+            kts.set(project_id, new Set());
+          }
+          kts.get(project_id).add(transaction);
+          return kts;
+        }, new Map());
+        teamKeyTransactions.set(team, keyTransactionsForTeam);
+      });
 
       const pageLinks = xhr && xhr.getResponseHeader('Link');
       if (pageLinks) {
@@ -51,7 +58,7 @@ export async function fetchTeamKeyTransactions(
     }
   }
 
-  return datas.flat();
+  return teamKeyTransactions;
 }
 
 export function toggleKeyTransaction(
