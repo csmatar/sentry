@@ -1,5 +1,3 @@
-import {Component} from 'react';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import * as TeamKeyTransactionManager from 'app/components/performance/teamKeyTransactionsManager';
