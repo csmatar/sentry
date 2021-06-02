@@ -22,7 +22,7 @@ import {trackAnalyticsEvent} from 'app/utils/analytics';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
-import DashboardBanner from './banner';
+import Banner from './banner';
 import Controls from './controls';
 import Dashboard from './dashboard';
 import {DEFAULT_STATS_PERIOD, EMPTY_DASHBOARD} from './data';
@@ -86,6 +86,11 @@ class DashboardDetail extends Component<Props, State> {
   componentWillUnmount() {
     window.removeEventListener('beforeunload', this.onUnload);
   }
+
+  handleBannerClick = () => {
+    setBannerHidden(true);
+    this.setState({isBannerHidden: true});
+  };
 
   checkStateRoute() {
     const {router, organization, params} = this.props;
@@ -390,11 +395,6 @@ class DashboardDetail extends Component<Props, State> {
     );
   };
 
-  handleBannerClick = () => {
-    setBannerHidden(true);
-    this.setState({isBannerHidden: true});
-  };
-
   renderWidgetBuilder(dashboard: DashboardDetails) {
     const {children} = this.props;
     const {modifiedDashboard, widgetToBeUpdated} = this.state;
@@ -406,6 +406,16 @@ class DashboardDetail extends Component<Props, State> {
           widget: widgetToBeUpdated,
         })
       : children;
+  }
+
+  renderBanner() {
+    const bannerDismissed = this.state.isBannerHidden;
+
+    if (bannerDismissed) {
+      return null;
+    }
+
+    return <Banner onHideBanner={this.handleBannerClick} />;
   }
 
   renderDefaultDashboardDetail() {
@@ -445,7 +455,7 @@ class DashboardDetail extends Component<Props, State> {
                 dashboardState={dashboardState}
               />
             </StyledPageHeader>
-            <DashboardBanner onHideBanner={this.handleBannerClick} />
+            {this.renderBanner()}
             <Dashboard
               paramDashboardId={dashboardId}
               dashboard={modifiedDashboard ?? dashboard}
